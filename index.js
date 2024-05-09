@@ -1,77 +1,87 @@
 const express = require('express');
-const xlsx = require('xlsx');
-const cors = require('cors');
-const path = require('path');
+const fs = require('fs');
+const bodyParser = require('body-parser');
 
 const app = express();
-app.use(express.json());
-app.use(cors());
+const port = process.env.PORT || 4000;
 
 
 
-
-// Menentukan folder untuk menyimpan file-file statis seperti HTML, CSS, dan JavaScript
-app.use(express.static(path.join(__dirname, 'public')));
-
-// Rute untuk mengakses formulir HTML
-app.get('/form', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'form.html'));
-});
-
-// === route tambah data ke excel === //
-app.get('/tambah', (req, res) => {
-  // Mengirimkan formulir HTML
-  res.sendFile(path.join(__dirname, 'public', 'form.html'));
-});
-// === route tambah data ke excel === //
-app.post('/tambah', (req, res) => {
-  try {
-      const workbook = xlsx.readFile('data.xlsx');
-      const sheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[sheetName];
-      let data = xlsx.utils.sheet_to_json(sheet);
-
-      // Mendapatkan data dari formulir
-      const newData = {
-          id: data.length + 1, // ID unik berdasarkan jumlah data saat ini
-          judul: req.body.judul,
-          Link: req.body.link
-      };
-
-      // Menambahkan data baru ke array data
-      data.push(newData);
-
-      // Membuat lembar kerja baru dari array data yang diperbarui
-      const newWorksheet = xlsx.utils.json_to_sheet(data);
-      const newWorkbook = xlsx.utils.book_new();
-      xlsx.utils.book_append_sheet(newWorkbook, newWorksheet, sheetName);
-
-      // Menyimpan file Excel yang diperbarui
-      xlsx.writeFile(newWorkbook, 'data.xlsx');
-
-      res.send(`Data berhasil ditambahkan dan file Excel berhasil diperbarui. Data baru: ${JSON.stringify(newData)}`);
-  } catch (error) {
-      res.status(500).send('Gagal menambahkan data ke file Excel');
+// Middleware untuk menetapkan header CORS
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', 'http://localhost:3000'); // Mengizinkan akses dari domain yang sesuai
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE'); // Metode HTTP yang diizinkan
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization'); // Header yang diizinkan dalam permintaan
+  res.setHeader('Access-Control-Allow-Credentials', true); // Mengizinkan pengiriman kredensial (misalnya, cookie)
+  if (req.method === 'OPTIONS') {
+      // Respon untuk permintaan pra-fligh (preflight)
+      res.sendStatus(200);
+  } else {
+      next(); // Lanjutkan ke middleware berikutnya
   }
 });
 
+// Middleware untuk membaca data formulir
+app.use(bodyParser.urlencoded({ extended: false }));
 
-
-// === api json data === //
-app.get('/api/data', (req,res) => {
-  try {
-    const workbook = xlsx.readFile('data.xlsx');
-    const sheetName = workbook.SheetNames[0];
-    const sheet = workbook.Sheets[sheetName];
-    let data = xlsx.utils.sheet_to_json(sheet);
-      res.json(data);
-  } catch (error) {
-      console.error('Error fetching data:', error);
-      res.status(500).send('Gagal mengambil data dari file Excel');
-  }
+// Menampilkan formulir
+app.get("/", (req, res) => {
+    res.sendFile(__dirname + '/index.html');
 });
 
-//  === server yang berjalan === //
-app.listen(4000, () => {
-  console.log('Server Running');
+// Menangani permintaan POST dari formulir
+app.post("/submit", (req, res) => {
+    const { name, data } = req.body;
+
+    // Membuat objek baru dari data formulir
+    const newData = {
+        name: name,
+        data: data
+    };
+
+    // Membaca data JSON yang sudah ada
+    fs.readFile('data.json', (err, existingData) => {
+        if (err && err.code === 'ENOENT') {
+            // Jika file data.json belum ada, buat array kosong
+            existingData = '[]';
+        } else if (err) {
+            console.error(err);
+            res.status(500).send('Internal Server Error');
+            return;
+        }
+
+        // Parsing data JSON yang sudah ada
+        const parsedData = JSON.parse(existingData);
+
+        // Menambahkan data baru ke dalam array
+        parsedData.push(newData);
+
+        // Menyimpan data baru ke dalam file data.json
+        fs.writeFile('data.json', JSON.stringify(parsedData, null, 2), (err) => {
+            if (err) {
+                console.error(err);
+                res.status(500).send('Internal Server Error');
+                return;
+            }
+            res.send('Data berhasil disimpan');
+        });
+    });
+});
+
+app.get("/api", (req, res) => {
+  fs.readFile('data.json', (err, data) => {
+      if (err) {
+          console.error(err);
+          res.status(500).send('Internal Server Error');
+          return;
+      }
+      const jsonData = JSON.parse(data);
+      res.json(jsonData);
+  });
+});
+
+
+// Menjalankan server
+app.listen(port, () => {
+    console.log(`Server berjalan pada port ${port}`);
 });

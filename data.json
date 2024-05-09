@@ -1,14 +1,6 @@
 [
   {
-    "Name": "New Person",
-    "Age": 40
-  },
-  {
-    "Name": "New Person",
-    "Age": 40
-  },
-  {
-    "Name": "New Person",
-    "Age": 40
+    "name": "poster merdeka",
+    "data": "https://firebasestorage.googleapis.com/v0/b/portofolio-3c1ab.appspot.com/o/design%2Fmerdeka.webp?alt=media&token=78198008-ae63-451f-9b0c-a1abb0bce88c"
   }
 ]
