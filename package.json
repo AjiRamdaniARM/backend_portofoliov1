@@ -4,9 +4,9 @@
   "description": "server-database",
   "main": "index.js",
   "scripts": {
-    "server": "nodemon index.js",
+    "start": "node index.js",
     "test": "testAri",
-    "build": "ari build"
+    "build": "node build"
   },
   "keywords": [
     "ardev"
@@ -16,6 +16,7 @@
   "dependencies": {
     "cors": "^2.8.5",
     "express": "^4.19.2",
+    "firebase": "^10.11.1",
     "nodemon": "^3.1.0",
     "xlsx": "^0.18.5"
   }
